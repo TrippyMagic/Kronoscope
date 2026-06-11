@@ -41,7 +41,7 @@ export default function AgeTable({ rows }: AgeTableProps) {
   const [showExact, setShowExact] = useState(false);
   const [overlayRow, setOverlayRow] = useState<string | null>(null);
 
-  // Minimum raw value to offer the "how much is it?" overlay (matches scaleHint logic)
+  // Minimum raw value to offer the "how much is it?" overlay.
   const MIN_OVERLAY_VALUE = 1000;
 
   const hasEstimates     = useMemo(() => rows.some(r => r.type === "estimate" && r.rangeFactor), [rows]);

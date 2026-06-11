@@ -63,35 +63,22 @@
   --radius-xl: 28px;
 
   /* ── Z-index scale (F-01) ────────────────────────────── */
-  /* Canonical stacking map — consume via var(--z-*) in all files.
-     Never use bare z-index integers outside this table.
-     ┌──────────────────────────────────────────────────────┐
-     │  0   timeline__line (stripe baseline)                │
-     │  1   ticks, group-range highlight                    │
-     │  2   hover tooltip, sub-timeline events              │
-     │  3   timeline events (.timeline__event)              │
-     │  4   focus cursor, group bubbles                     │
-     │  5   label tooltips (.timeline__label)               │
-     │  6   sub-timeline inline (desktop, position:relative)│
-     │  8   pinch-to-zoom hint                              │
-     │ 10   controls (zoom btns, close btn, 3D header)      │
-     │ 20   wizard backdrop, local popups                   │
-     │ 50   sub-timeline bottom-sheet (mobile, pos:fixed)   │
-     │100   PhenomenaSearch dropdown                        │
-     │1200  navbar dropdown                                 │
-     │1800  app navbar                                      │
-     │2400  scale overlay                                   │
-     └──────────────────────────────────────────────────────┘ */
+  /* Canonical stacking map. Consume via var(--z-*) in all files.
+     0 timeline baseline
+     4 timeline focus cursor and interactive overlay
+     8 pinch-to-zoom hint
+     10 controls and local close buttons
+     20 local popups
+     50 mobile bottom sheets
+     100 PhenomenaSearch dropdown
+     1200 navbar dropdown
+     1800 app navbar
+     2400 scale overlay */
   --z-timeline-line:     0;
-  --z-timeline-ticks:    1;
-  --z-hover-tooltip:     2;
-  --z-events:            3;
   --z-focus-groups:      4;
-  --z-label-tooltip:     5;
-  --z-subtimeline:       6;
   --z-pinch-hint:        8;
   --z-controls:         10;
-  --z-wizard:           20;
+  --z-local-popup:      20;
   --z-subtimeline-mob:  50;
   --z-phenomena-dd:    100;
   --z-navbar-dropdown: 1200;

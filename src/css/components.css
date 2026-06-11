@@ -1,6 +1,6 @@
 /* =============================================================
    Shared UI components
-   Cards, buttons, forms, chips, tabs, age-table, sections
+   Cards, links, age-table, sections, and runtime fallbacks
 ============================================================= */
 
 /* -----------------------------------------------------------
@@ -57,36 +57,6 @@
   box-sizing: border-box;
 }
 
-/* -----------------------------------------------------------
-   Buttons
------------------------------------------------------------ */
-.button {
-  margin-top: 40px;
-  padding: 14px 40px;
-  border-radius: 16px;
-  background: var(--indigo-600);
-  color: #fff;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, .4);
-  transition: filter .15s, transform .15s;
-}
-.button:hover { filter: brightness(1.1); transform: scale(.97); }
-
-.button--ghost {
-  background: transparent;
-  color: var(--indigo-100);
-  border: 1px solid rgba(165, 180, 252, 0.5);
-  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.25);
-}
-
-.button--ghost:hover {
-  filter: none;
-  transform: translateY(-1px);
-  background: rgba(79, 70, 229, 0.15);
-}
-
 .help-link {
   display: inline-flex;
   align-items: center;
@@ -123,13 +93,6 @@
   background: rgba(15, 23, 42, 0.55);
 }
 
-.more-btn {
-  margin-top: 16px;
-  background: var(--slate-700);
-  font-size: .9rem;
-  padding: 10px 28px;
-}
-
 .age-table__row--clickable {
   cursor: pointer;
   transition: background .15s ease;
@@ -157,95 +120,6 @@
 }
 .age-table__row--clickable:hover .age-table__overlay-hint { opacity: 1; }
 
-/* -----------------------------------------------------------
-   Form controls
------------------------------------------------------------ */
-.label { font-size: 1.25rem; font-weight: 600; }
-
-.input,
-.select {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid var(--slate-700);
-  background: var(--slate-900);
-  color: var(--text-light);
-  text-align: center;
-}
-
-.input.short { width: 90px; }
-.select      { text-align: left; }
-
-.milestone-row,
-.timezone-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  align-items: center;
-}
-
-/* -----------------------------------------------------------
-   Chips
------------------------------------------------------------ */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.chip {
-  padding: 6px 12px;
-  font-size: .85rem;
-  border-radius: 12px;
-  border: 1px solid var(--slate-700);
-  background: var(--slate-900);
-  color: var(--text-light);
-  cursor: pointer;
-  transition: .15s;
-}
-
-.chip:hover   { background: var(--slate-800); }
-.chip--active { background: var(--indigo-600); border-color: var(--indigo-600); }
-
-/* -----------------------------------------------------------
-   Slider and wheel
------------------------------------------------------------ */
-.slider {
-  -webkit-appearance: none;
-  width: 100%;
-  margin: 16px 0;
-  background: transparent;
-}
-
-.slider::-webkit-slider-runnable-track,
-.slider::-moz-range-track {
-  height: 4px;
-  background: var(--slate-700);
-  border-radius: 2px;
-}
-
-.slider::-webkit-slider-thumb,
-.slider::-moz-range-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--indigo-300);
-  cursor: pointer;
-  margin-top: -7px;
-}
-
-.wheel {
-  width: 100%;
-  border: 1px solid var(--slate-700);
-  border-radius: 8px;
-  background: var(--slate-900);
-  color: var(--text-light);
-  padding: 8px;
-  margin-top: 8px;
-  font-size: .9rem;
-}
 
 /* Onboarding toast */
 .perspective-card__toast {
@@ -547,16 +421,6 @@
   gap: 16px;
 }
 
-.section-card--mock { align-items: center; justify-content: center; min-height: 180px; }
-
-.section-card__mock-label {
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: rgba(226, 232, 240, 0.85);
-  letter-spacing: .12em;
-  text-transform: uppercase;
-}
-
 .section-card__title { margin: 0; font-size: 1.15rem; font-weight: 600; color: var(--text-light); }
 .section-card__text  { margin: 0; color: var(--text-muted); font-size: .95rem; line-height: 1.6; }
 
@@ -726,24 +590,6 @@
 .about-card__content .quote {
   color: var(--indigo-100);
   text-shadow: 0 0 4px rgba(165, 180, 252, .35);
-}
-
-/* -----------------------------------------------------------
-   More-panel
------------------------------------------------------------ */
-.more-panel {
-  margin-top: 20px; background: var(--slate-800);
-  border: 1px solid var(--slate-700); border-radius: 12px;
-  padding: 18px; max-width: 480px;
-  text-align: center; color: var(--text-muted);
-  animation: fadeIn .3s ease-out;
-}
-
-.more-panel p { margin: 6px 0; }
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* -----------------------------------------------------------

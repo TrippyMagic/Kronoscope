@@ -4,6 +4,7 @@
  * Persisted in localStorage.
  */
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { readStorageJson, writeStorageJson } from "../utils/storage";
 
 export type ActivityLevel = "sedentary" | "moderate" | "active";
 
@@ -23,19 +24,41 @@ const LS_KEY = "user_profile";
 
 const EMPTY: UserProfile = {};
 
+const isActivityLevel = (value: unknown): value is ActivityLevel =>
+  value === "sedentary" || value === "moderate" || value === "active";
+
+const finiteInRange = (value: unknown, min: number, max: number): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) && value >= min && value <= max
+    ? value
+    : undefined;
+
+const normalizeProfile = (value: unknown): UserProfile => {
+  if (typeof value !== "object" || value === null) return EMPTY;
+  const source = value as Record<string, unknown>;
+  const profile: UserProfile = {};
+
+  const restingHeartRate = finiteInRange(source.restingHeartRate, 30, 200);
+  const height = finiteInRange(source.height, 50, 250);
+  const weight = finiteInRange(source.weight, 20, 300);
+  const sleepHoursPerDay = finiteInRange(source.sleepHoursPerDay, 2, 18);
+  const screenHoursPerDay = finiteInRange(source.screenHoursPerDay, 0, 24);
+
+  if (restingHeartRate !== undefined) profile.restingHeartRate = restingHeartRate;
+  if (height !== undefined) profile.height = height;
+  if (weight !== undefined) profile.weight = weight;
+  if (isActivityLevel(source.activityLevel)) profile.activityLevel = source.activityLevel;
+  if (sleepHoursPerDay !== undefined) profile.sleepHoursPerDay = sleepHoursPerDay;
+  if (screenHoursPerDay !== undefined) profile.screenHoursPerDay = screenHoursPerDay;
+
+  return profile;
+};
+
 const readProfile = (): UserProfile => {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    return raw ? (JSON.parse(raw) as UserProfile) : EMPTY;
-  } catch {
-    return EMPTY;
-  }
+  return normalizeProfile(readStorageJson<unknown>(LS_KEY, EMPTY));
 };
 
 const writeProfile = (p: UserProfile) => {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(p));
-  } catch { /* noop */ }
+  writeStorageJson(LS_KEY, normalizeProfile(p));
 };
 
 type ProfileCtx = {
@@ -60,8 +83,9 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
           (cleaned as Record<string, unknown>)[k] = v;
         }
       }
-      writeProfile(cleaned);
-      return cleaned;
+      const normalized = normalizeProfile(cleaned);
+      writeProfile(normalized);
+      return normalized;
     });
   }, []);
 

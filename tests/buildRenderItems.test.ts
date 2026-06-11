@@ -1,0 +1,156 @@
+import { describe, expect, it } from "vitest";
+
+import { buildRenderItems } from "../src/components/timeline/buildRenderItems";
+import type { TimelineEvent } from "../src/components/Timeline";
+import type { Range } from "../src/utils/scaleTransform";
+
+const makeEvent = (id: string, value: number): TimelineEvent => ({
+  id,
+  label: id,
+  value,
+  lane: "personal",
+});
+
+describe("buildRenderItems", () => {
+  it("keeps nearby events separate at high zoom unless they truly collide", () => {
+    const range: Range = {
+      start: new Date("2024-01-01").getTime(),
+      end: new Date("2024-01-31").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("a", new Date("2024-01-10").getTime()),
+        makeEvent("b", new Date("2024-01-11").getTime()),
+      ],
+      range,
+      1000,
+      "linear",
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items.every(item => item.type === "single")).toBe(true);
+  });
+
+  it("groups collisions conservatively at low zoom", () => {
+    const range: Range = {
+      start: new Date("1900-01-01").getTime(),
+      end: new Date("2100-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("a", new Date("2000-01-10").getTime()),
+        makeEvent("b", new Date("2000-01-11").getTime()),
+      ],
+      range,
+      500,
+      "linear",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.type).toBe("group");
+    if (items[0]?.type === "group") {
+      expect(items[0].grouping).toBe("collision");
+    }
+  });
+
+  it("groups offscreen events at the left edge instead of rendering only the nearest clamped marker", () => {
+    const range: Range = {
+      start: new Date("2000-01-01").getTime(),
+      end: new Date("2001-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("old-a", new Date("1980-01-01").getTime()),
+        makeEvent("old-b", new Date("1985-01-01").getTime()),
+      ],
+      range,
+      800,
+      "linear",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.type).toBe("group");
+    if (items[0]?.type === "group") {
+      expect(items[0].grouping).toBe("edge-start");
+      expect(items[0].events).toHaveLength(2);
+    }
+  });
+
+  it("still groups exact overlaps when measured axis is available", () => {
+    const range: Range = {
+      start: new Date("2020-01-01").getTime(),
+      end: new Date("2030-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("same-a", new Date("2025-01-01").getTime()),
+        makeEvent("same-b", new Date("2025-01-01").getTime()),
+      ],
+      range,
+      900,
+      "linear",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.type).toBe("group");
+  });
+
+  it("shows a visible event and a separate offscreen group when older items sit beyond the viewport edge", () => {
+    const range: Range = {
+      start: new Date("2000-01-01").getTime(),
+      end: new Date("2001-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("old-a", new Date("1980-01-01").getTime()),
+        makeEvent("old-b", new Date("1985-01-01").getTime()),
+        makeEvent("visible", new Date("2000-01-05").getTime()),
+      ],
+      range,
+      800,
+      "linear",
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.type).toBe("group");
+    expect(items[1]?.type).toBe("single");
+    if (items[0]?.type === "group") {
+      expect(items[0].grouping).toBe("edge-start");
+      expect(items[0].events.map(event => event.id)).toEqual(["old-a", "old-b"]);
+    }
+    if (items[1]?.type === "single") {
+      expect(items[1].event.id).toBe("visible");
+    }
+  });
+
+  it("groups future offscreen events at the right edge", () => {
+    const range: Range = {
+      start: new Date("2000-01-01").getTime(),
+      end: new Date("2001-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("future-a", new Date("2025-01-01").getTime()),
+        makeEvent("future-b", new Date("2030-01-01").getTime()),
+      ],
+      range,
+      800,
+      "linear",
+    );
+
+    expect(items).toHaveLength(1);
+    expect(items[0]?.type).toBe("group");
+    if (items[0]?.type === "group") {
+      expect(items[0].grouping).toBe("edge-end");
+      expect(items[0].events.map(event => event.id)).toEqual(["future-a", "future-b"]);
+    }
+  });
+});
+
+

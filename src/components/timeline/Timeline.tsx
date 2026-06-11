@@ -108,12 +108,14 @@ export default function Timeline({ range, value, onChange, events, renderValue }
   const cancelPointerInteraction = useCallback(() => {
     panStartRef.current = null;
     isPanningRef.current = false;
+    capturedPointerIdRef.current = null;
     setIsPanning(false);
   }, []);
 
   const panStartRef = useRef<{ clientX: number; centerAtStart: number; spanAtStart: number } | null>(null);
   const isPanningRef = useRef(false);
   const isPinchingRef = useRef(false);
+  const capturedPointerIdRef = useRef<number | null>(null);
 
   const { showPinchHint } = usePinchZoom({
     axisNodeRef,
@@ -133,7 +135,12 @@ export default function Timeline({ range, value, onChange, events, renderValue }
     if (target.closest(".timeline__ctrl-btn")) return;
     if (isPinchingRef.current || panStartRef.current !== null) return;
     evt.preventDefault();
-    evt.currentTarget.setPointerCapture(evt.pointerId);
+    try {
+      evt.currentTarget.setPointerCapture(evt.pointerId);
+      capturedPointerIdRef.current = evt.pointerId;
+    } catch {
+      capturedPointerIdRef.current = null;
+    }
     const vp = viewportRef.current;
     panStartRef.current = { clientX: evt.clientX, centerAtStart: vp.center, spanAtStart: vp.spanMs };
     isPanningRef.current = false;
@@ -216,6 +223,23 @@ export default function Timeline({ range, value, onChange, events, renderValue }
     setHoveredSelectionKey(null);
   }, [cancelPointerInteraction]);
 
+  useEffect(() => {
+    const targetKeys = new Set(interactiveTargets.map(target => target.selectionKey));
+
+    if (hoveredSelectionKey && !targetKeys.has(hoveredSelectionKey)) {
+      setHoveredSelectionKey(null);
+    }
+
+    if (focusedSelectionKey && !targetKeys.has(focusedSelectionKey)) {
+      setFocusedSelectionKey(null);
+    }
+
+    if (selectedSelectionKey && !targetKeys.has(selectedSelectionKey)) {
+      setSelectedSelectionKey(null);
+      setSelectedItems([]);
+    }
+  }, [focusedSelectionKey, hoveredSelectionKey, interactiveTargets, selectedSelectionKey]);
+
   const handleAxisPointerLeave = useCallback(() => {
     if (isPanningRef.current || panStartRef.current) return;
     setHoveredSelectionKey(null);
@@ -253,7 +277,13 @@ export default function Timeline({ range, value, onChange, events, renderValue }
       cancelPointerInteraction();
       return;
     }
-    evt.currentTarget.releasePointerCapture(evt.pointerId);
+    if (capturedPointerIdRef.current === evt.pointerId) {
+      try {
+        evt.currentTarget.releasePointerCapture(evt.pointerId);
+      } catch {
+        /* Pointer capture can already be gone after browser-level cancellation. */
+      }
+    }
     if (!isPanningRef.current && panStartRef.current) {
       const hitTarget = resolveTargetFromPointer(evt.clientX, evt.clientY);
       if (hitTarget) {

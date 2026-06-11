@@ -1,4 +1,9 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  readStorageString,
+  removeStorageItem,
+  writeStorageString,
+} from "../utils/storage";
 
 type Ctx = {
   birthDate: Date | null;
@@ -10,33 +15,52 @@ type Ctx = {
 
 const BirthCtx = createContext<Ctx | undefined>(undefined);
 
+const MIN_BIRTH_YEAR = 1900;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const isValidBirthDate = (date: Date): boolean => {
+  if (!Number.isFinite(date.getTime())) return false;
+  const year = date.getFullYear();
+  if (year < MIN_BIRTH_YEAR || year > new Date().getFullYear()) return false;
+  return date <= new Date();
+};
+
+const readBirthDate = (): Date | null => {
+  const raw = readStorageString("dob");
+  if (!raw) return null;
+  const date = new Date(raw);
+  return isValidBirthDate(date) ? date : null;
+};
+
+const normalizeBirthTime = (value: string | null): string =>
+  value && TIME_RE.test(value) ? value : "00:00";
+
 export function BirthDateProvider({ children }: { children: ReactNode }) {
   /* ---------- date (persisted) -------------------- */
-  const [birthDate, setBirthDateState] = useState<Date | null>(() => {
-    const raw = localStorage.getItem("dob");
-    return raw ? new Date(raw) : null;
-  });
+  const [birthDate, setBirthDateState] = useState<Date | null>(readBirthDate);
 
   const setBirthDate = (d: Date) => {
+    if (!isValidBirthDate(d)) return;
     setBirthDateState(d);
-    localStorage.setItem("dob", d.toISOString());
+    writeStorageString("dob", d.toISOString());
   };
 
   /* ---------- time (persisted) -------------------- */
   const [birthTime, setBirthTimeState] = useState<string>(() => {
-    return localStorage.getItem("dobTime") ?? "00:00";
+    return normalizeBirthTime(readStorageString("dobTime"));
   });
 
   const setBirthTime = (t: string) => {
-    setBirthTimeState(t);
-    localStorage.setItem("dobTime", t);
+    const safeTime = normalizeBirthTime(t);
+    setBirthTimeState(safeTime);
+    writeStorageString("dobTime", safeTime);
   };
 
   const clearBirthDate = () => {
     setBirthDateState(null);
     setBirthTimeState("00:00");
-    localStorage.removeItem("dob");
-    localStorage.removeItem("dobTime");
+    removeStorageItem("dob");
+    removeStorageItem("dobTime");
   };
 
   /* ---------- context value ----------------------- */

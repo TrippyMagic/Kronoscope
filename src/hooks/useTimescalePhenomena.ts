@@ -3,54 +3,33 @@
  * Fetches and caches timescale phenomena from /data/timescale-phenomena.json.
  * Same module-level cache pattern as useHistoricalEvents.
  */
-import { useEffect, useRef, useState } from "react";
-import type { TimescalePhenomenon } from "../types/phenomena";
-
-type Status = "idle" | "loading" | "success" | "error";
+import {
+  parseTimescalePhenomena,
+  type TimescalePhenomenon,
+} from "../types/phenomena";
+import {
+  createJsonResourceCache,
+  useJsonResource,
+  type ResourceStatus,
+} from "../utils/fetchJsonResource";
 
 type UseTimescalePhenomenaResult = {
   phenomena: TimescalePhenomenon[];
-  status: Status;
+  status: ResourceStatus;
   error: string | null;
 };
 
-let _cache: TimescalePhenomenon[] | null = null;
+const cache = createJsonResourceCache<TimescalePhenomenon[]>();
 
 export function useTimescalePhenomena(): UseTimescalePhenomenaResult {
-  const [phenomena, setPhenomena] = useState<TimescalePhenomenon[]>(_cache ?? []);
-  const [status, setStatus]       = useState<Status>(_cache ? "success" : "idle");
-  const [error, setError]         = useState<string | null>(null);
-  const fetchedRef                 = useRef(false);
+  const { data, status, error } = useJsonResource({
+    url: "/data/timescale-phenomena.json",
+    cache,
+    initialValue: [],
+    parse: parseTimescalePhenomena,
+    errorPrefix: "useTimescalePhenomena",
+  });
 
-  useEffect(() => {
-    if (_cache || fetchedRef.current) return;
-    fetchedRef.current = true;
-
-    let cancelled = false;
-    setStatus("loading");
-
-    fetch("/data/timescale-phenomena.json")
-      .then(res => {
-        if (!res.ok) throw new Error(`Failed to load phenomena: HTTP ${res.status}`);
-        return res.json() as Promise<TimescalePhenomenon[]>;
-      })
-      .then(data => {
-        if (cancelled) return;
-        _cache = data;
-        setPhenomena(data);
-        setStatus("success");
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        const msg = err instanceof Error ? err.message : String(err);
-        console.error("[useTimescalePhenomena]", msg);
-        setError(msg);
-        setStatus("error");
-      });
-
-    return () => { cancelled = true; };
-  }, []);
-
-  return { phenomena, status, error };
+  return { phenomena: data, status, error };
 }
 

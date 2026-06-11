@@ -19,6 +19,7 @@ import { LANE_META, type TimelineLane } from "../components/timeline/types";
 import { SectionErrorBoundary } from "../components/SectionErrorBoundary";
 import { getAboutSectionHref } from "../utils/aboutLinks";
 import { resolveGlobalLaneNotice } from "../utils/globalLaneNotice";
+import { readStorageJson, writeStorageJson } from "../utils/storage";
 import { Banner, Button, FormActions, Tabs, TabsContent, TabsList, TabsTrigger } from "../ui";
 import {
   resolveTimeline3DAvailability,
@@ -168,6 +169,14 @@ const TAB_TEASERS: Record<string, string> = {
   Eons:       "How much of the universe's lifetime have you witnessed?",
 };
 
+const readUnlockedPerspectiveTabs = (): Set<string> => {
+  const saved = readStorageJson<unknown>(LS_UNLOCKED, []);
+  if (!Array.isArray(saved)) return new Set<string>([ALWAYS_UNLOCKED]);
+  const knownTabs = new Set(Object.keys(TAB_ROWS));
+  const validSaved = saved.filter(tab => typeof tab === "string" && knownTabs.has(tab));
+  return new Set<string>([ALWAYS_UNLOCKED, ...validSaved]);
+};
+
 export default function Milestones() {
   const { state } = useMilestone();
   const { birthDate, birthTime } = state;
@@ -299,21 +308,19 @@ export default function Milestones() {
   }, []);
 
   /** Micro-onboarding: progressive disclosure for perspectives */
-  const [unlockedTabs, setUnlockedTabs] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(LS_UNLOCKED);
-      if (raw) return new Set<string>([ALWAYS_UNLOCKED, ...JSON.parse(raw)]);
-    } catch { /* noop */ }
-    return new Set<string>([ALWAYS_UNLOCKED]);
-  });
+  const [unlockedTabs, setUnlockedTabs] = useState<Set<string>>(readUnlockedPerspectiveTabs);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   const unlockTab = useCallback((t: string) => {
     setUnlockedTabs(prev => {
       const next = new Set(prev);
       next.add(t);
-      try { localStorage.setItem(LS_UNLOCKED, JSON.stringify([...next].filter(k => k !== ALWAYS_UNLOCKED))); } catch { /* noop */ }
+      writeStorageJson(LS_UNLOCKED, [...next].filter(k => k !== ALWAYS_UNLOCKED));
       return next;
     });
     const teaser = TAB_TEASERS[t];

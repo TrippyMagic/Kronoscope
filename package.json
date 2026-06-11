@@ -8,14 +8,14 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@radix-ui/react-tabs": "^1.1.13",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.3.0",
     "@vercel/analytics": "^1.5.0",
-    "@vercel/speed-insights": "^1.2.0",
     "dayjs": "^1.11.13",
     "framer-motion": "^12.23.15",
     "react": "^19.0.0",
@@ -24,7 +24,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
+    "@playwright/test": "^1.60.0",
     "@testing-library/react": "^16.3.2",
+    "@types/node": "^25.9.3",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",

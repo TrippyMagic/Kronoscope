@@ -150,7 +150,7 @@
   box-shadow: 0 20px 40px rgba(2, 6, 23, 0.6);
   backdrop-filter: blur(10px);
   pointer-events: none;
-  z-index: var(--z-wizard); /* local popup — same stacking level as wizard backdrop */
+  z-index: var(--z-local-popup);
   display: flex;
   flex-direction: column;
   gap: 5px;

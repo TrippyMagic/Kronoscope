@@ -4,7 +4,7 @@ import duration from "dayjs/plugin/duration";
 import utc from "dayjs/plugin/utc";
 
 import { useBirthDate } from "../context/BirthDateContext";   // ← context
-import type { Unit } from "../components/unused/constants.ts";
+import type { Unit } from "../types/timeUnits";
 import { formatNice } from "../utils/format";
 
 dayjs.extend(duration);

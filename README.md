@@ -1,93 +1,42 @@
 # Kronoscope
 
-[Live Demo](https://kronoscope.vercel.app/)
+Kronoscope is a React 19 + Vite application for exploring a lifetime through age perspectives, a two-lane time map, and long-horizon timescales.
 
-## Project Purpose
-
-Kronoscope is a React 19 + Vite application that helps you visualise your life from unusual perspectives. Enter a birth date and explore your lifetime through dozens of lenses — from classic years and heartbeats, to cosmic timescales, geological eons, and a two-lane time map that places your life alongside curated past events, global reference markers, and future projections.
-
-### Features
-
-- **6 perspective tabs** — Classic, Biological, Everyday, Nerdy, Cosmic, Eons
-- **Interactive 2D timeline** — pan, zoom (Ctrl+scroll), Personal + Global lanes, per-category global filters, and edge-aware grouping for offscreen markers
-- **Future projections dataset** — separate editorial layer for scheduled, astronomical, forecast, and speculative events with explicit confidence labels
-- **Mobile-first timeline surface** — sticky navigation, stronger timeline framing, fewer nested scroll areas, and local fallbacks before the global error boundary
-- **Responsive layout audit completed** — primary surfaces now prefer `max-width`, flex/grid layouts, and breakpoint-based wrapping instead of rigid fixed-width containers
-- **Shared page alignment** — top-level pages now use the same root gutter strategy, keeping cards and content surfaces visually aligned with the sticky navbar
-- **Central Settings page** — one place for birth date, personal metrics, lifestyle modifiers, and the data that refines estimate ranges
-- **Initial UI system slice** — `Settings` and the shared DOB flow now run on a first internal `src/ui/` primitive layer (`Button`, `Banner`, `Field`, `Panel`, `FormActions`)
-- **Headless tab migration started** — `Timescales` and the `GeoCosmicExplorer` sub-tabs now use the new `src/ui/Tabs` primitive backed by Radix Tabs
-- **Milestones perspectives tabs migrated** — the progressive-unlock tab system in `Milestones` now uses the same `src/ui/Tabs` layer while preserving onboarding, unlock state, and mobile collapse behavior
-- **Phase 1 UI migration completed** — active high-friction surfaces now run on `src/ui`, and the first safe cleanup of legacy tabs/banner CSS has started
-- **Phase 2 timeline completed** — the 2D timeline now runs on `src/components/timeline-core/` scene + interaction contracts, a shared `Canvas + accessible overlay` renderer for both lanes, and canvas-native pointer hit-testing with keyboard-safe overlay controls
-- **Timeline integration coverage expanded** — the shared overlay/canvas path is protected by `@testing-library/react` + `jsdom` tests for personal/global activation, keyboard semantics, detail panel wiring, target hit-testing, and bare-axis pointer selection fallback
-- **Phase 3 slices 1–5 verified** — `Timescales` overview now has a dedicated filter shell and pinned detail fallback, `GeoCosmicExplorer` adds stronger breadcrumb/back semantics plus mobile-safe detail flow, the comparator now has a keyboard-safe accessible search flow with duplicate exclusion and dedicated RTL coverage, the shared DOB/Settings surfaces are mobile-hardened with synced summary + guardrails, and `Timescales` absolute-log mapping now converges on shared pure helpers in `src/utils/temporalScale.ts`
-- **Phase 4 slice 1 verified** — the experimental 3D timeline now consumes a pure `buildTimeline3DScene` adapter from `src/components/timeline-core/`, aligning lane order, focus clamping, tick thinning, and marker projection without yet forcing a shared 2D/3D selection contract
-- **Phase 4 slice 2 verified** — the experimental 3D runtime now shares a dedicated `src/components/3d/runtimePolicy.ts` contract for WebGL availability, quality-profile selection, renderer budgets, and toggle copy across `Timeline3DWrapper`, `Timeline3D`, and `Milestones`
-- **Phase 4 slice 3 verified** — 3D marker clicks now emit shared `TimelineSelectionPayload` detail data, `Timeline3DWrapper` reuses `TimelineDetailPanel` outside the canvas, and selected markers sync the shared `focusValue` back into `Milestones` so the 2D time map stays aligned when you return
-- **Phase 4 completed** — the final slice moves single-marker color/copy/detail descriptors into `src/components/timeline-core/`, so the 3D scene adapter emits shared marker contracts and the R3F renderer no longer reconstructs palette or metadata locally
-- **DOB guardrails** — explicit blocking states when birth date is missing, plus reliability warnings when optional profile details are incomplete
-- **Optional 3D timeline** — WebGL-powered (Three.js, lazy-loaded), lane-aware, and automatically reduced to a low-power profile on mobile / reduced-motion devices
-- **Personal milestone markers stay personal** — markers such as `10,000 days old`, `500 months old`, and `1 billion seconds old` remain on the Personal lane instead of mixing with global events
-- **Global lane state is explicit** — Milestones no longer shows a false “no global items” warning while historical/projected datasets are still loading; loading, error, and truly empty states are separated
-- **Timescales page** — log-scale overview from Planck time to heat death, phenomenon comparator, geological/cosmic explorer
-- **Scale overlay** — "But how much is it?" popup with real-world equivalences
-
-## Development
-
-Install dependencies and start the development server:
+## Commands
 
 ```bash
 npm install
 npm run dev
-```
-
-The app will be available at the local Vite dev server address.
-
-## Build and Preview
-
-To create a production build and preview it locally:
-
-```bash
+npm run lint
+npm test -- --run
+npm run test:e2e
 npm run build
-npm run preview
 ```
 
-## Testing
+On Windows PowerShell, use `npm.cmd` if script execution policy blocks `npm`.
 
-Run the unit tests with:
+## Documentation
 
-```bash
-npm test
-```
+- Current system documentation: [docs/README.md](docs/README.md)
+- Future work and specifications: [specs/README.md](specs/README.md)
+- Architecture overview: [docs/architecture.md](docs/architecture.md)
+- Timeline runtime: [docs/timeline.md](docs/timeline.md)
+- Storage contracts: [docs/storage-and-persistence.md](docs/storage-and-persistence.md)
+- Testing guide: [docs/testing.md](docs/testing.md)
 
-### Verified baseline snapshot (2026-04-26)
+## Runtime Shape
 
-- `npm test -- --run` → **120 tests passed across 19 files**
-- `npm run build` → **production build succeeds**
-- `npm run lint` → **passes with 1 non-blocking warning** in `src/context/UserProfileContext.tsx`
+The app keeps its existing React/Vite/router/context architecture. Active routes are `/`, `/milestones`, `/timescales`, `/settings`, `/about`, and the legacy-compatible `/personalize` redirect to `/settings`.
 
-## Architecture Roadmaps
+Timeline 2D uses a canvas scene with an accessible HTML overlay. Optional 3D remains lazy-loaded and WebGL-gated.
 
-Current refactor planning documents live under `refactor_docs/`:
+## Verification
 
-- `refactor_docs/refactor_3/PLAN.md` — completed roadmap for the current product baseline
-- `refactor_docs/refactor_4/PLAN.md` — current structural refactor plan focused on UI system stabilization, timeline 2D redesign, Timescales convergence, and cleanup/testing hardening
-- `refactor_docs/refactor_4/DECISIONS.md` — decision log for the architectural choices introduced by Refactor 4
-- `refactor_docs/refactor_4/AUDIT_SUMMARY.md` — phase 0 audit inventory (`active / legacy / orphan / candidate removal`) and cleanup boundary
-- `refactor_docs/refactor_4/ARCHITECTURE_BASELINE.md` — verified runtime architecture snapshot used to start Refactor 4 implementation
+Verified on 2026-06-11:
 
-Current implementation status:
+- `npm run lint` passes with one existing Fast Refresh warning in `src/context/UserProfileContext.tsx`.
+- `npm test -- --run` passes 128 tests across 22 files.
+- `npm run test:e2e` passes 12 Playwright smoke tests across desktop and mobile Chromium.
+- `npm run build` succeeds.
 
-- phase 0 completed and documented
-- phase 1 completed with `src/ui` adopted across active form/banner/actions/tabs surfaces
-- phase 2 completed with `src/components/timeline-core/`, unified `TimelineSceneCanvas` + `TimelineInteractiveOverlay`, canvas-native pointer hit-testing, personal/global lane parity on the new overlay model, pruning of `SubTimeline`, and removal of legacy timeline `scaleMode`
-- phase 3 completed through five verified slices: overview hardening, `GeoCosmicExplorer` detail/mobile semantics hardening, comparator search/accessibility hardening, cross-page mobile consistency for `Settings` + the shared DOB flow, and low-risk shared temporal helpers for absolute-log mapping/formatting in `Timescales`
-- phase 4 is now complete: `src/components/timeline-core/buildTimeline3DScene.ts` centralizes the pure 3D scene adapter, `src/components/3d/runtimePolicy.ts` centralizes availability/profile budgets/toggle copy, the shared inspector bridge keeps 3D selection aligned with `Milestones`, and the final slice moves the single-marker descriptor (color/copy/detail metadata) into `timeline-core`
-- `src/utils/temporalScale.ts` now hosts the shared absolute-log ratio/percent helpers and small exponent formatter used by the migrated `Timescales` consumers
-- 2D/3D convergence is now sufficient to close phase 4 for single markers: the 3D runtime reuses shared detail/copy/color descriptors and syncs focus back to the 2D page state, while keyboard-first 3D marker semantics and full `TimelineInteractiveTarget` parity remain future work
-- `src/pages/Settings.tsx` and `src/components/BirthDatePicker.tsx` are the first migrated runtime surfaces
-- `src/pages/Timescales.tsx` and `src/components/timescales/GeoCosmicExplorer.tsx` are the first migrated tab systems
-- `src/pages/Milestones.tsx` now uses the same tabs system for the perspectives panel, including progressive unlock behavior
-- `src/pages/Landing.tsx`, the DOB-gated banner/actions in `Milestones`, and the global `ErrorBoundary` fallback now also use the new UI primitives
-
+See [docs/testing.md](docs/testing.md) for the maintained verification commands.

@@ -10,6 +10,7 @@ import {
   normalizeTimelineLanes,
   type TimelineLane,
 } from "../components/timeline/types";
+import { readStorageJson, writeStorageJson } from "../utils/storage";
 
 export type TimescalesTab = "overview" | "comparator" | "explorer";
 
@@ -27,18 +28,29 @@ const LS_TS_TAB   = "pref_timescalesTab";
 const LS_LANES    = "pref_visibleTimelineLanes";
 
 /* ── helpers ──────────────────────────────────────────────── */
-const readLS = <T,>(key: string, fallback: T): T => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw !== null ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
+const readLS = <T,>(key: string, fallback: T): T =>
+  readStorageJson<T>(key, fallback);
 
 const writeLS = (key: string, value: unknown) => {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* noop */ }
+  writeStorageJson(key, value);
 };
+
+const isEventCategory = (value: unknown): value is EventCategory =>
+  typeof value === "string" && ALL_CATEGORIES.includes(value as EventCategory);
+
+const normalizeCategories = (saved: unknown): EventCategory[] => {
+  if (!Array.isArray(saved)) return ALL_CATEGORIES;
+  const categories = saved.filter(isEventCategory);
+  return categories.length > 0 ? [...new Set(categories)] : ALL_CATEGORIES;
+};
+
+const normalizeBoolean = (saved: unknown, fallback: boolean): boolean =>
+  typeof saved === "boolean" ? saved : fallback;
+
+const normalizeTimescalesTab = (saved: unknown): TimescalesTab =>
+  saved === "overview" || saved === "comparator" || saved === "explorer"
+    ? saved
+    : "overview";
 
 /* ── context shape ────────────────────────────────────────── */
 type PreferencesCtx = {
@@ -66,17 +78,17 @@ const PreferencesCtx = createContext<PreferencesCtx | undefined>(undefined);
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [activeCategories, setActiveCategories] = useState<Set<EventCategory>>(
     () => {
-      const saved = readLS<EventCategory[] | null>(LS_CATS, null);
-      return new Set<EventCategory>(saved ?? ALL_CATEGORIES);
+      const saved = readLS<unknown>(LS_CATS, null);
+      return new Set<EventCategory>(normalizeCategories(saved));
     }
   );
 
   const [show3D, setShow3DState] = useState<boolean>(
-    () => readLS<boolean>(LS_3D, false)
+    () => normalizeBoolean(readLS<unknown>(LS_3D, false), false)
   );
 
   const [timescalesTab, setTimescalesTabState] = useState<TimescalesTab>(
-    () => readLS<TimescalesTab>(LS_TS_TAB, "overview")
+    () => normalizeTimescalesTab(readLS<unknown>(LS_TS_TAB, "overview"))
   );
 
   const [visibleTimelineLanes, setVisibleTimelineLanes] = useState<Set<TimelineLane>>(
