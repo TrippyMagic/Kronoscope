@@ -1,4 +1,4 @@
-import {JSX, useEffect, useId, useRef, useState, type MouseEvent as ReactMouseEvent} from "react";
+import { useEffect, useId, useRef, useState, type JSX, type MouseEvent as ReactMouseEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 type TitleProps = {
@@ -19,6 +19,8 @@ const NAV_ITEMS = [
   { to: "/about", label: "About" },
 ] as const;
 
+const DRAWER_EXIT_MS = 360;
+
 type NavItem = (typeof NAV_ITEMS)[number];
 
 type NavbarProps = {
@@ -27,33 +29,65 @@ type NavbarProps = {
 
 export function Navbar({ onNavigateAttempt }: NavbarProps) {
   const [open, setOpen] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const location = useLocation();
   const menuId = useId();
-  const menuRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (open) setDrawerVisible(true);
+  }, [open]);
+
+  useEffect(() => {
+    if (open || !drawerVisible) return;
+    if (typeof window === "undefined") {
+      setDrawerVisible(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setDrawerVisible(false), DRAWER_EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [drawerVisible, open]);
+
+  useEffect(() => {
+    if (!drawerVisible) return;
     if (typeof document === "undefined") return;
-    const handleClick = (event: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-    document.addEventListener("mousedown", handleClick);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.removeEventListener("mousedown", handleClick);
+      document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKey);
     };
-  }, [open]);
+  }, [drawerVisible]);
 
   useEffect(() => {
     setOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia("(min-width: 960px)");
+    const closeOnDesktop = () => {
+      if (query.matches) setOpen(false);
+    };
+
+    closeOnDesktop();
+    query.addEventListener("change", closeOnDesktop);
+    return () => query.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  const closeDrawer = () => {
+    setOpen(false);
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => toggleRef.current?.focus());
+    }
+  };
 
   const toggle = () => setOpen(value => !value);
   const isActive = (path: string) => {
@@ -65,64 +99,99 @@ export function Navbar({ onNavigateAttempt }: NavbarProps) {
     if (onNavigateAttempt && !onNavigateAttempt(item.to)) {
       evt.preventDefault();
     }
-    setOpen(false);
+    closeDrawer();
   };
 
   const handleBrandClick = (evt: ReactMouseEvent<HTMLAnchorElement>) => {
     if (onNavigateAttempt && !onNavigateAttempt("/")) {
       evt.preventDefault();
     }
-    setOpen(false);
+    closeDrawer();
   };
 
-  return (
-    <header className="app-navbar">
+  const renderNavLinks = (variant: "inline" | "drawer") => (
+    NAV_ITEMS.map(item => (
       <Link
-        to="/"
-        className="app-navbar__brand"
-        aria-label="Go to landing page"
-        onClick={handleBrandClick}
+        key={`${variant}-${item.to}`}
+        to={item.to}
+        className={`app-navbar__link ${
+          isActive(item.to) ? "app-navbar__link--active" : ""
+        }`}
+        onClick={evt => handleNavClick(item, evt)}
       >
-        <span className="app-navbar__brand-mark" aria-hidden="true" />
-        <Title variant="navbar" />
+        {item.label}
       </Link>
+    ))
+  );
 
-      <div className="app-navbar__actions">
-        <div className="app-navbar__menu" ref={menuRef}>
+  return (
+    <>
+      <header className="app-navbar">
+        <Link
+          to="/"
+          className="app-navbar__brand"
+          aria-label="Go to landing page"
+          onClick={handleBrandClick}
+        >
+          <span className="app-navbar__brand-mark" aria-hidden="true" />
+          <Title variant="navbar" />
+        </Link>
+
+        <nav className="app-navbar__inline-nav" aria-label="Primary navigation">
+          {renderNavLinks("inline")}
+        </nav>
+
+        <button
+          ref={toggleRef}
+          type="button"
+          className="app-navbar__menu-toggle"
+          onClick={toggle}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-controls={`${menuId}-drawer`}
+          aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+        >
+          <span className="app-navbar__menu-icon" aria-hidden="true" />
+        </button>
+      </header>
+
+      {drawerVisible && (
+        <div
+          className={`app-navbar__drawer-layer ${
+            open ? "app-navbar__drawer-layer--open" : "app-navbar__drawer-layer--closing"
+          }`}
+          aria-hidden={!open}
+        >
           <button
             type="button"
-            className="app-navbar__menu-toggle"
-            onClick={toggle}
-            aria-haspopup="true"
-            aria-expanded={open}
-            aria-controls={`${menuId}-dropdown`}
+            className="app-navbar__drawer-backdrop"
+            aria-label="Close navigation menu"
+            onClick={closeDrawer}
+          />
+          <div
+            id={`${menuId}-drawer`}
+            className="app-navbar__drawer"
+            role="dialog"
+            aria-modal={open}
+            aria-label="Mobile navigation"
           >
-            <span className="app-navbar__menu-label">Menu</span>
-            <span className="app-navbar__menu-icon" aria-hidden="true" />
-          </button>
-
-          <nav
-            id={`${menuId}-dropdown`}
-            className={`app-navbar__dropdown ${
-              open ? "app-navbar__dropdown--open" : ""
-            }`}
-            aria-hidden={!open}
-          >
-            {NAV_ITEMS.map(item => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`app-navbar__link ${
-                  isActive(item.to) ? "app-navbar__link--active" : ""
-                }`}
-                onClick={evt => handleNavClick(item, evt)}
+            <div className="app-navbar__drawer-header">
+              <span className="app-navbar__drawer-title">Navigation</span>
+              <button
+                type="button"
+                className="app-navbar__drawer-close"
+                onClick={closeDrawer}
+                aria-label="Close navigation menu"
               >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+                <span aria-hidden="true">x</span>
+              </button>
+            </div>
+            <nav className="app-navbar__drawer-links" aria-label="Primary navigation">
+              {renderNavLinks("drawer")}
+            </nav>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   );
 }

@@ -134,7 +134,6 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setVisibleTimelineLanes(prev => {
       const next = new Set(prev);
       if (next.has(lane)) {
-        if (next.size === 1) return prev;
         next.delete(lane);
       } else {
         next.add(lane);

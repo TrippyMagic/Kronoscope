@@ -1,7 +1,4 @@
-/**
- * src/components/BirthDatePicker.tsx
- * Simple inline birth-date + time selector. No modal, no steps.
- */
+import { type ChangeEvent, type FormEvent } from "react";
 import { useBirthDate } from "../context/BirthDateContext";
 import { Button, Field } from "../ui";
 
@@ -16,7 +13,7 @@ const formatSavedBirthDate = (birthDate: Date, birthTime: string) => {
     month: "long",
     year: "numeric",
   });
-  return `${formattedDate} • ${birthTime}`;
+  return `${formattedDate} - ${birthTime}`;
 };
 
 export default function BirthDatePicker() {
@@ -26,13 +23,13 @@ export default function BirthDatePicker() {
   const today = toDateStr(new Date());
   const summary = birthDate ? formatSavedBirthDate(birthDate, birthTime) : null;
 
-  const handleDate = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (!val) {
+  const handleDate = (event: ChangeEvent<HTMLInputElement> | FormEvent<HTMLInputElement>) => {
+    const value = event.currentTarget.value;
+    if (!value) {
       clearBirthDate();
       return;
     }
-    const [y, m, d] = val.split("-").map(Number);
+    const [y, m, d] = value.split("-").map(Number);
     const date = new Date(y, m - 1, d);
     date.setHours(0, 0, 0, 0);
     if (date <= new Date() && y >= 1900 && y <= CURRENT_YEAR) {
@@ -40,8 +37,8 @@ export default function BirthDatePicker() {
     }
   };
 
-  const handleTime = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setBirthTime(e.target.value || "00:00");
+  const handleTime = (event: ChangeEvent<HTMLInputElement> | FormEvent<HTMLInputElement>) => {
+    setBirthTime(event.currentTarget.value || "00:00");
   };
 
   return (
@@ -55,6 +52,7 @@ export default function BirthDatePicker() {
           min="1900-01-01"
           value={dateValue}
           onChange={handleDate}
+          onInput={handleDate}
           autoComplete="bday"
           aria-describedby={summary ? "dob-picker-summary" : undefined}
         />
@@ -71,6 +69,7 @@ export default function BirthDatePicker() {
           className="ui-input"
           value={birthTime}
           onChange={handleTime}
+          onInput={handleTime}
           aria-describedby={summary ? "dob-picker-summary" : undefined}
         />
       </Field>

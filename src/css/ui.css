@@ -382,8 +382,26 @@
   }
 
   .ui-form-actions .ui-button {
+    flex: 0 1 auto;
     width: 100%;
     max-width: 100%;
+  }
+
+  .ui-panel {
+    gap: 16px;
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+
+  .ui-input,
+  .ui-select {
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+
+  .ui-button {
+    min-height: 44px;
+    padding: 10px 16px;
   }
 }
 
