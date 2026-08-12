@@ -271,6 +271,56 @@ describe("Timeline interactive overlay", () => {
     }).not.toThrow();
     expect(onChange).toHaveBeenCalledTimes(1);
   });
+
+  it("finishes target activation before a synchronous lost-pointer-capture event", () => {
+    Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+      configurable: true,
+      value: function releasePointerCapture() {
+        this.dispatchEvent(new Event("lostpointercapture", { bubbles: true }));
+      },
+    });
+
+    const { container } = render(
+      <Timeline
+        range={range}
+        value={new Date("2000-06-01").getTime()}
+        onChange={vi.fn()}
+        events={[makePersonalEvent()]}
+      />,
+    );
+
+    const axis = container.querySelector(".timeline__axis") as HTMLDivElement;
+    axis.getBoundingClientRect = () => ({
+      width: 1000,
+      height: 360,
+      top: 0,
+      left: 100,
+      right: 1100,
+      bottom: 360,
+      x: 100,
+      y: 0,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.pointerDown(axis, { isPrimary: true, pointerId: 1, clientX: 600, clientY: 108 });
+    fireEvent.pointerUp(axis, { isPrimary: true, pointerId: 1, clientX: 600, clientY: 108 });
+
+    expect(within(screen.getByRole("dialog", { name: /event details/i })).getByText("Mid-life checkpoint")).toBeTruthy();
+  });
+
+  it("shows the local fallback when the source range is invalid", () => {
+    render(
+      <Timeline
+        range={{ start: 10, end: 10 }}
+        value={10}
+        onChange={vi.fn()}
+        events={[makePersonalEvent()]}
+      />,
+    );
+
+    expect(screen.getByRole("status").textContent).toMatch(/timeline unavailable/i);
+    expect(screen.queryByRole("slider", { name: /timeline focus/i })).toBeNull();
+  });
 });
 
 

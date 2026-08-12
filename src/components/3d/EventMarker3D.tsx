@@ -1,6 +1,6 @@
 /**
  * src/components/3d/EventMarker3D.tsx
- * A single event represented as a sphere on the 3D timeline.
+ * A single event represented as a selectable marker on the 3D timeline.
  * Hovering reveals an HTML overlay label via @react-three/drei `Html`.
  *
  * NOTE: This file is loaded lazily (only when the user activates 3D mode).
@@ -46,20 +46,19 @@ export function EventMarker3D({
     );
   });
 
-  // Connector line from sphere down to axis (computed in local space)
+  // Connector line from marker to its lane rail in local space.
   const connectorPoints = useMemo<[number, number, number][]>(
-    () => [[0, 0, 0], [0, marker.axisY - marker.y, 0]],
-    [marker.axisY, marker.y],
+    () => [[0, 0, 0], [0, marker.axisY - marker.y, -marker.z]],
+    [marker.axisY, marker.y, marker.z],
   );
 
   // Tooltip position: above sphere when event is above axis, below when below
   const labelOffsetY = marker.y >= marker.axisY ? 0.55 : -0.55;
 
   return (
-    <group position={[marker.x, marker.y, 0]}>
-      {/* ── Sphere ── */}
+    <group position={[marker.x, marker.y, marker.z]}>
       <mesh
-        ref={meshRef}
+        scale={baseScale * 1.9}
         onPointerDown={e => { e.stopPropagation(); }}
         onPointerOver={e => { e.stopPropagation(); setHovered(true); }}
         onPointerOut={() => setHovered(false)}
@@ -68,7 +67,16 @@ export function EventMarker3D({
           onActivate?.(marker);
         }}
       >
-        <sphereGeometry args={[1, segments, segments]} />
+        <sphereGeometry args={[1, 12, 12]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      <mesh ref={meshRef} scale={baseScale}>
+        {marker.markerShape === "triangle" ? (
+          <coneGeometry args={[1, 1.65, 4, 1]} />
+        ) : (
+          <sphereGeometry args={[1, segments, segments]} />
+        )}
         <meshStandardMaterial
           color={marker.color}
           emissive={marker.color}
@@ -77,6 +85,19 @@ export function EventMarker3D({
           metalness={0.1}
         />
       </mesh>
+
+      {isHighlighted && (
+        <mesh scale={baseScale * 1.75} raycast={() => null}>
+          <sphereGeometry args={[1, segments, segments]} />
+          <meshBasicMaterial
+            color={marker.color}
+            transparent
+            opacity={selected ? 0.24 : 0.14}
+            wireframe
+            depthWrite={false}
+          />
+        </mesh>
+      )}
 
       {/* ── Vertical connector to axis ── */}
       <Line
@@ -91,7 +112,6 @@ export function EventMarker3D({
       {isHighlighted && (
         <Html
           center
-          distanceFactor={10}
           position={[0, labelOffsetY, 0]}
           zIndexRange={[100, 0]}
           style={{ pointerEvents: "none" }}

@@ -1,6 +1,7 @@
 import {
   clamp,
   generateTicks,
+  isValidRange,
   type Range,
   type TimelineTick,
 } from "../../utils/scaleTransform";
@@ -12,10 +13,14 @@ import {
 } from "../timeline/types";
 import { TIMELINE_LANE_ORDER } from "./buildTimelineScene";
 import { buildTimelineSingleEventDescriptor } from "./interaction";
+import { normalizeTimelineEvents } from "./normalizeTimelineEvents";
 
 export const TIMELINE_3D_AXIS_MIN_X = -10;
 export const TIMELINE_3D_AXIS_MAX_X = 10;
 export const TIMELINE_3D_LANE_OFFSET_Y = 0.5;
+export const TIMELINE_3D_COLLISION_GAP_X = 0.48;
+export const TIMELINE_3D_STACK_OFFSET_Y = 0.34;
+const TIMELINE_3D_STACK_OFFSET_Z = 0.14;
 export const TIMELINE_3D_LANE_Y: Record<TimelineLane, number> = {
   personal: 1.85,
   global: -1.85,
@@ -38,6 +43,8 @@ export type Timeline3DSceneMarker = {
   x: number;
   axisY: number;
   y: number;
+  z: number;
+  stackLevel: number;
   title: string;
   color: string;
   ariaLabel: string;
@@ -69,7 +76,7 @@ const normalizeTimeline3DLane = (event: TimelineEvent): TimelineLane =>
   (event.lane ?? "personal") === "global" ? "global" : "personal";
 
 export const toTimeline3DX = (value: number, range: Range): number => {
-  if (range.end <= range.start) return 0;
+  if (!isValidRange(range) || !Number.isFinite(value)) return 0;
 
   const ratio = clamp((value - range.start) / (range.end - range.start), 0, 1);
   return TIMELINE_3D_AXIS_MIN_X + ratio * (TIMELINE_3D_AXIS_MAX_X - TIMELINE_3D_AXIS_MIN_X);
@@ -99,8 +106,9 @@ export const buildTimeline3DScene = ({
   focusValue,
   maxTickCount = 10,
 }: BuildTimeline3DSceneOptions): Timeline3DScene => {
-  const safeFocusValue = range.end > range.start
-    ? clamp(focusValue, range.start, range.end)
+  const rangeIsValid = isValidRange(range);
+  const safeFocusValue = rangeIsValid
+    ? clamp(Number.isFinite(focusValue) ? focusValue : range.start, range.start, range.end)
     : range.start;
 
   const lanes = TIMELINE_LANE_ORDER.map(lane => ({
@@ -109,22 +117,40 @@ export const buildTimeline3DScene = ({
     axisY: TIMELINE_3D_LANE_Y[lane],
   }));
 
-  const markers = events
-    .slice()
+  const lastXByStack = new Map<string, number[]>();
+  const markers = normalizeTimelineEvents(events)
+    .filter(event => rangeIsValid && event.value >= range.start && event.value <= range.end)
     .sort((a, b) => a.value - b.value)
     .map(event => {
       const lane = normalizeTimeline3DLane(event);
       const axisY = TIMELINE_3D_LANE_Y[lane];
-      const y = axisY + (event.placement === "below" ? -TIMELINE_3D_LANE_OFFSET_Y : TIMELINE_3D_LANE_OFFSET_Y);
+      const placement = event.placement === "below" ? "below" : "above";
+      const direction = placement === "below" ? -1 : 1;
+      const x = toTimeline3DX(event.value, range);
+      const stackKey = `${lane}:${placement}`;
+      const stackLastX = lastXByStack.get(stackKey) ?? [];
+      let stackLevel = stackLastX.findIndex(lastX => x - lastX >= TIMELINE_3D_COLLISION_GAP_X);
+      if (stackLevel < 0) stackLevel = stackLastX.length;
+      stackLastX[stackLevel] = x;
+      lastXByStack.set(stackKey, stackLastX);
+
+      const y = axisY + direction * (
+        TIMELINE_3D_LANE_OFFSET_Y + stackLevel * TIMELINE_3D_STACK_OFFSET_Y
+      );
+      const z = stackLevel === 0
+        ? 0
+        : (stackLevel % 2 === 1 ? 1 : -1) * Math.ceil(stackLevel / 2) * TIMELINE_3D_STACK_OFFSET_Z;
       const descriptor = buildTimelineSingleEventDescriptor(event);
 
       return {
         id: descriptor.id,
         value: event.value,
         lane,
-        x: toTimeline3DX(event.value, range),
+        x,
         axisY,
         y,
+        z,
+        stackLevel,
         title: descriptor.title,
         color: descriptor.color,
         ariaLabel: descriptor.ariaLabel,
@@ -142,7 +168,7 @@ export const buildTimeline3DScene = ({
     focusValue: safeFocusValue,
     focusX: toTimeline3DX(safeFocusValue, range),
     lanes,
-    ticks: buildTimeline3DTicks(range, maxTickCount),
+    ticks: rangeIsValid ? buildTimeline3DTicks(range, maxTickCount) : [],
     markers,
   };
 };

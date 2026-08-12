@@ -151,6 +151,29 @@ describe("buildRenderItems", () => {
       expect(items[0].events.map(event => event.id)).toEqual(["future-a", "future-b"]);
     }
   });
+
+  it("sorts unstable input order before collision grouping", () => {
+    const range: Range = {
+      start: new Date("2000-01-01").getTime(),
+      end: new Date("2030-01-01").getTime(),
+    };
+
+    const items = buildRenderItems(
+      [
+        makeEvent("late", new Date("2020-01-01").getTime()),
+        makeEvent("near-b", new Date("2010-01-02").getTime()),
+        makeEvent("near-a", new Date("2010-01-01").getTime()),
+      ],
+      range,
+      500,
+    );
+
+    expect(items).toHaveLength(2);
+    expect(items[0]?.type).toBe("group");
+    if (items[0]?.type === "group") {
+      expect(items[0].events.map(event => event.id)).toEqual(["near-a", "near-b"]);
+    }
+  });
 });
 
 

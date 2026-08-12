@@ -128,6 +128,36 @@ describe("buildTimeline3DScene", () => {
     expect(lastTick?.value).toBeLessThanOrEqual(denseRange.end);
     expect(lastTick?.x).toBeLessThanOrEqual(TIMELINE_3D_AXIS_MAX_X);
   });
+
+  it("culls offscreen markers and duplicate identities instead of clamping them together", () => {
+    const scene = buildTimeline3DScene({
+      events: [
+        makeEvent("visible", new Date("2000-06-01").getTime(), "personal"),
+        makeEvent("visible", new Date("2000-07-01").getTime(), "global"),
+        makeEvent("future", new Date("2030-01-01").getTime(), "personal"),
+      ],
+      range,
+      focusValue: range.start,
+    });
+
+    expect(scene.markers.map(marker => marker.id)).toEqual(["visible"]);
+  });
+
+  it("stacks spatial collisions on distinct anchors", () => {
+    const value = new Date("2000-06-01").getTime();
+    const scene = buildTimeline3DScene({
+      events: [
+        makeEvent("same-a", value, "global", "above"),
+        makeEvent("same-b", value, "global", "above"),
+        makeEvent("same-c", value, "global", "above"),
+      ],
+      range,
+      focusValue: value,
+    });
+
+    expect(scene.markers.map(marker => marker.stackLevel)).toEqual([0, 1, 2]);
+    expect(new Set(scene.markers.map(marker => `${marker.x}:${marker.y}:${marker.z}`)).size).toBe(3);
+  });
 });
 
 

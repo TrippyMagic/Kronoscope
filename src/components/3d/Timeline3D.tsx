@@ -12,7 +12,7 @@
  */
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { AdaptiveDpr, AdaptiveEvents, Html, Line, OrbitControls, Stars } from "@react-three/drei";
+import { AdaptiveEvents, Html, Line, OrbitControls, Stars } from "@react-three/drei";
 import * as THREE from "three";
 
 import { EventMarker3D } from "./EventMarker3D";
@@ -42,7 +42,9 @@ function FocusRing({ x, qualityProfile }: { x: number; qualityProfile: Timeline3
 
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
-    const scale = 1 + 0.2 * Math.sin(clock.getElapsedTime() * 2.8);
+    const scale = qualityProfile === "low-power"
+      ? 1
+      : 1 + 0.14 * Math.sin(clock.getElapsedTime() * 2.4);
     meshRef.current.scale.setScalar(scale);
   });
 
@@ -91,8 +93,9 @@ function TimelineScene({
       <ambientLight intensity={profileConfig.lighting.ambientIntensity} />
       <directionalLight position={[6, 10, 5]} intensity={profileConfig.lighting.directionalIntensity} color="#c8c8ff" />
       <pointLight position={[0, 6, 4]} intensity={profileConfig.lighting.pointIntensity} color="#818cf8" />
+      <color attach="background" args={["#070a16"]} />
+      <fog attach="fog" args={["#070a16", 20, 48]} />
 
-      <AdaptiveDpr pixelated />
       <AdaptiveEvents />
 
       <Stars
@@ -109,9 +112,16 @@ function TimelineScene({
           <Line
             points={laneAxisPoints(lane.axisY)}
             color={getLaneLineColor(lane.lane)}
+            lineWidth={lane.lane === "personal" ? 7 : 6}
+            transparent
+            opacity={0.12}
+          />
+          <Line
+            points={laneAxisPoints(lane.axisY)}
+            color={getLaneLineColor(lane.lane)}
             lineWidth={lane.lane === "personal" ? 2.5 : 2.2}
           />
-          <Html center distanceFactor={10} position={[-9.35, lane.axisY + 0.55, 0]}>
+          <Html center position={[-9.35, lane.axisY + 0.55, 0]} zIndexRange={[20, 0]}>
             <span className={`timeline-3d__lane-label timeline-3d__lane-label--${lane.lane}`}>
               {lane.label}
             </span>
@@ -132,7 +142,7 @@ function TimelineScene({
               transparent
               opacity={0.24}
             />
-            <Html center distanceFactor={10} position={[0, -2.63, 0]}>
+            <Html center position={[0, -2.63, 0]} zIndexRange={[10, 0]}>
               <span className="timeline-3d__tick">{tick.label}</span>
             </Html>
           </group>
@@ -196,7 +206,12 @@ export default function Timeline3D({
         gl={profileConfig.gl}
         performance={{ min: profileConfig.performanceMin }}
         frameloop="always"
-        style={{ background: "#090c1a" }}
+        onCreated={({ gl }) => {
+          gl.outputColorSpace = THREE.SRGBColorSpace;
+          gl.toneMapping = THREE.ACESFilmicToneMapping;
+          gl.toneMappingExposure = 1.05;
+        }}
+        style={{ background: "#070a16" }}
       >
         <TimelineScene
           events={events}

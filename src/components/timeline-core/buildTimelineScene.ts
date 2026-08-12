@@ -5,6 +5,7 @@ import {
   valueToRatio,
   type Range,
   type TimelineTick,
+  isValidRange,
 } from "../../utils/scaleTransform";
 import {
   ALL_TIMELINE_LANES,
@@ -14,6 +15,7 @@ import {
   type TimelineLane,
 } from "../timeline/types";
 import { buildRenderItems } from "./buildRenderItems";
+import { normalizeTimelineEvents } from "./normalizeTimelineEvents";
 import {
   buildTimelineInteractiveTargets,
   type TimelineInteractiveTarget,
@@ -76,16 +78,21 @@ export const buildTimelineScene = ({
   laneOrder,
 }: BuildTimelineSceneOptions): TimelineScene => {
   const lanes = sanitizeLaneOrder(laneOrder);
-  const sortedEvents = events.slice().sort((a, b) => a.value - b.value);
-  const safeFocusValue = clamp(focusValue, range.start, range.end);
-  const focusRatio = valueToRatio(safeFocusValue, range);
+  const rangeIsValid = isValidRange(range);
+  const sortedEvents = rangeIsValid
+    ? normalizeTimelineEvents(events).sort((a, b) => a.value - b.value)
+    : [];
+  const safeFocusValue = rangeIsValid
+    ? clamp(Number.isFinite(focusValue) ? focusValue : range.start, range.start, range.end)
+    : (Number.isFinite(focusValue) ? focusValue : 0);
+  const focusRatio = rangeIsValid ? valueToRatio(safeFocusValue, range) : 0;
 
   return {
     range,
     focusValue: safeFocusValue,
     focusRatio,
     focusLeftPercent: toPercent(focusRatio),
-    ticks: generateTicks(range).map(tick => ({
+    ticks: (rangeIsValid ? generateTicks(range) : []).map(tick => ({
       ...tick,
       leftPercent: toPercent(valueToRatio(tick.value, range)),
     })),

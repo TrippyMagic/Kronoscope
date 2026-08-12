@@ -29,8 +29,8 @@ import {
 // ── Types ──────────────────────────────────────────────────────
 
 type PinchZoomOptions = {
-  /** Ref to the axis DOM node — populated after mount. */
-  axisNodeRef:   MutableRefObject<HTMLDivElement | null>;
+  /** Current axis DOM node, updated across fallback and remount transitions. */
+  axisNode:      HTMLDivElement | null;
   /** Ref to the current viewport (avoids stale closure). */
   viewportRef:   MutableRefObject<Viewport>;
   /** React state setter (function-updater form). */
@@ -50,7 +50,7 @@ type PinchZoomOptions = {
 // ── Hook ───────────────────────────────────────────────────────
 
 export function usePinchZoom({
-  axisNodeRef,
+  axisNode,
   viewportRef,
   setViewport,
   isPinchingRef,
@@ -73,8 +73,7 @@ export function usePinchZoom({
 
   // ── Main effect — register touch listeners ───────────────────
   useEffect(() => {
-    const axis = axisNodeRef.current;
-    if (!axis) return;
+    if (!axisNode) return;
 
     // ── touchstart ─────────────────────────────────────────────
     const onTouchStart = (e: TouchEvent) => {
@@ -117,10 +116,12 @@ export function usePinchZoom({
       if (prevDist < 1) return; // guard against near-zero distance
 
       // factor < 1 when fingers spread (zoom in); > 1 when fingers close (zoom out)
+      if (newDist < 1) return;
       const factor = prevDist / newDist;
 
       // Map touch midpoint to a timeline anchor in milliseconds
-      const rect     = axis.getBoundingClientRect();
+      const rect     = axisNode.getBoundingClientRect();
+      if (rect.width <= 0) return;
       const relative = clamp((midX - rect.left) / rect.width, 0, 1);
       const vp       = viewportRef.current;
       const anchorMs = ratioToValue(relative, viewportToRange(vp));
@@ -139,23 +140,19 @@ export function usePinchZoom({
       }
     };
 
-    axis.addEventListener("touchstart",  onTouchStart,  { passive: false });
-    axis.addEventListener("touchmove",   onTouchMove,   { passive: false });
-    axis.addEventListener("touchend",    onTouchEnd);
-    axis.addEventListener("touchcancel", onTouchEnd);
+    axisNode.addEventListener("touchstart",  onTouchStart,  { passive: false });
+    axisNode.addEventListener("touchmove",   onTouchMove,   { passive: false });
+    axisNode.addEventListener("touchend",    onTouchEnd);
+    axisNode.addEventListener("touchcancel", onTouchEnd);
 
     return () => {
-      axis.removeEventListener("touchstart",  onTouchStart);
-      axis.removeEventListener("touchmove",   onTouchMove);
-      axis.removeEventListener("touchend",    onTouchEnd);
-      axis.removeEventListener("touchcancel", onTouchEnd);
+      axisNode.removeEventListener("touchstart",  onTouchStart);
+      axisNode.removeEventListener("touchmove",   onTouchMove);
+      axisNode.removeEventListener("touchend",    onTouchEnd);
+      axisNode.removeEventListener("touchcancel", onTouchEnd);
       if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
     };
-    // All deps (axisNodeRef, viewportRef, setViewport, isPinchingRef)
-    // are stable React refs or the guaranteed-stable setState dispatcher.
-    // Re-registering on every render would be wasteful — safe to omit from deps.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [axisNode, isPinchingRef, setViewport, viewportRef]);
 
   return { showPinchHint };
 }

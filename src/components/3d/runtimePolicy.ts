@@ -1,4 +1,4 @@
-import type { Range } from "../../utils/scaleTransform";
+import { isValidRange, type Range } from "../../utils/scaleTransform";
 
 export type Timeline3DQualityProfile = "balanced" | "low-power";
 
@@ -101,7 +101,7 @@ export const getTimeline3DProfileConfig = (
       containerClassName: "timeline-3d timeline-3d--low-power",
       headerHint: "Experimental 3D · low power mode",
       camera: { position: [0, 3.9, 18], fov: 58 },
-      dpr: [1, 1.15],
+      dpr: [1, 1.3],
       stars: { radius: 72, depth: 42, count: 900, factor: 3 },
       lighting: {
         ambientIntensity: 0.4,
@@ -115,7 +115,7 @@ export const getTimeline3DProfileConfig = (
         maxPolarAngle: Math.PI * 0.78,
       },
       gl: {
-        antialias: false,
+        antialias: true,
         alpha: false,
         powerPreference: "low-power",
       },
@@ -126,7 +126,7 @@ export const getTimeline3DProfileConfig = (
       containerClassName: "timeline-3d",
       headerHint: "Drag to orbit · Scroll to zoom",
       camera: { position: [0, 4.5, 16], fov: 55 },
-      dpr: [1, 1.75],
+      dpr: [1.25, 2],
       stars: { radius: 90, depth: 55, count: 2200, factor: 4 },
       lighting: {
         ambientIntensity: 0.32,
@@ -147,5 +147,5 @@ export const getTimeline3DProfileConfig = (
       performanceMin: 0.5,
     };
 
-export const isTimeline3DRangeRenderable = (range: Range): boolean => range.end > range.start;
+export const isTimeline3DRangeRenderable = (range: Range): boolean => isValidRange(range);
 

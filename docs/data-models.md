@@ -13,6 +13,8 @@ Important fields:
 - `projectionType` and `certainty` are valid only for projected events.
 - `placement`, `accent`, `markerShape`, and `color` are render metadata.
 
+Timeline scene adapters preserve the public shape but enforce runtime identity and geometry invariants: the first finite event for an ID wins, later duplicate IDs are ignored, and non-finite values do not enter either scene.
+
 ## Public Data Files
 
 The app loads JSON from:

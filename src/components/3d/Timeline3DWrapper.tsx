@@ -16,8 +16,12 @@ import type { Range } from "../../utils/scaleTransform";
 import { WEB_GL_SUPPORTED } from "../../utils/webgl";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { TimelineDetailPanel } from "../timeline/TimelineDetailPanel";
-import { buildTimelineSingleEventDescriptor } from "../timeline-core";
 import {
+  buildTimelineSingleEventDescriptor,
+  normalizeTimelineEvents,
+} from "../timeline-core";
+import {
+  isTimeline3DRangeRenderable,
   resolveTimeline3DAvailability,
   resolveTimeline3DQualityProfile,
 } from "./runtimePolicy";
@@ -63,14 +67,21 @@ export function Timeline3DWrapper(props: WrapperProps) {
   const isMobile = useMediaQuery("(max-width:719px)");
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const availability = resolveTimeline3DAvailability(WEB_GL_SUPPORTED);
+  const rangeRenderable = isTimeline3DRangeRenderable(range);
   const qualityProfile = resolveTimeline3DQualityProfile({ isMobile, prefersReducedMotion });
   const [selectedSelectionKey, setSelectedSelectionKey] = useState<string | null>(null);
+  const visibleEvents = useMemo(
+    () => rangeRenderable
+      ? normalizeTimelineEvents(events).filter(event => event.value >= range.start && event.value <= range.end)
+      : [],
+    [events, range.end, range.start, rangeRenderable],
+  );
 
   const selectedDescriptor = useMemo(() => {
     if (!selectedSelectionKey) return null;
-    const selectedEvent = events.find(event => event.id === selectedSelectionKey);
+    const selectedEvent = visibleEvents.find(event => event.id === selectedSelectionKey);
     return selectedEvent ? buildTimelineSingleEventDescriptor(selectedEvent) : null;
-  }, [events, selectedSelectionKey]);
+  }, [selectedSelectionKey, visibleEvents]);
 
   useEffect(() => {
     if (selectedSelectionKey && !selectedDescriptor) {
@@ -88,6 +99,9 @@ export function Timeline3DWrapper(props: WrapperProps) {
   }, [onFocusValueChange]);
 
   if (!availability.supported) return <NoWebGLFallback message={availability.fallbackMessage} />;
+  if (!rangeRenderable) {
+    return <NoWebGLFallback message="The current date range cannot be rendered in 3D. Return to the time map and reset the view." />;
+  }
 
   return (
     <div className="timeline-3d-stack">
@@ -97,7 +111,7 @@ export function Timeline3DWrapper(props: WrapperProps) {
 
       <Suspense fallback={<LoadingFallback />}>
         <Timeline3DLazy
-          events={events}
+          events={visibleEvents}
           range={range}
           focusValue={focusValue}
           onExitTo2D={onExitTo2D}

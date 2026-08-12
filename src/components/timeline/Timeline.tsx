@@ -73,8 +73,10 @@ export default function Timeline({ range, value, onChange, events, renderValue }
 
   const [axisRef, axisSize] = useElementSize<HTMLDivElement>();
   const axisNodeRef = useRef<HTMLDivElement | null>(null);
+  const [axisNode, setAxisNode] = useState<HTMLDivElement | null>(null);
   const setAxisRef = useCallback((node: HTMLDivElement | null) => {
     axisNodeRef.current = node;
+    setAxisNode(node);
     axisRef(node);
   }, [axisRef]);
 
@@ -118,7 +120,7 @@ export default function Timeline({ range, value, onChange, events, renderValue }
   const capturedPointerIdRef = useRef<number | null>(null);
 
   const { showPinchHint } = usePinchZoom({
-    axisNodeRef,
+    axisNode,
     viewportRef,
     setViewport,
     isPinchingRef,
@@ -189,20 +191,20 @@ export default function Timeline({ range, value, onChange, events, renderValue }
   }, [resolveTargetFromPointer]);
 
   useEffect(() => {
-    const axis = axisNodeRef.current;
-    if (!axis) return;
+    if (!axisNode) return;
     const onWheel = (evt: WheelEvent) => {
       if (!evt.ctrlKey) return;
+      const rect = axisNode.getBoundingClientRect();
+      if (rect.width <= 0) return;
       evt.preventDefault();
-      const rect = axis.getBoundingClientRect();
       const relative = clamp((evt.clientX - rect.left) / rect.width, 0, 1);
       const vp = viewportRef.current;
       const anchorMs = (vp.center - vp.spanMs / 2) + relative * vp.spanMs;
       setViewport(prev => applyZoom(prev, evt.deltaY > 0 ? ZOOM_OUT : ZOOM_IN, anchorMs));
     };
-    axis.addEventListener("wheel", onWheel, { passive: false });
-    return () => axis.removeEventListener("wheel", onWheel);
-  }, []);
+    axisNode.addEventListener("wheel", onWheel, { passive: false });
+    return () => axisNode.removeEventListener("wheel", onWheel);
+  }, [axisNode]);
 
   const handleZoomIn = useCallback(() => setViewport(p => applyZoom(p, ZOOM_IN)), []);
   const handleZoomOut = useCallback(() => setViewport(p => applyZoom(p, ZOOM_OUT)), []);
@@ -277,13 +279,7 @@ export default function Timeline({ range, value, onChange, events, renderValue }
       cancelPointerInteraction();
       return;
     }
-    if (capturedPointerIdRef.current === evt.pointerId) {
-      try {
-        evt.currentTarget.releasePointerCapture(evt.pointerId);
-      } catch {
-        /* Pointer capture can already be gone after browser-level cancellation. */
-      }
-    }
+    const shouldReleasePointer = capturedPointerIdRef.current === evt.pointerId;
     if (!isPanningRef.current && panStartRef.current) {
       const hitTarget = resolveTargetFromPointer(evt.clientX, evt.clientY);
       if (hitTarget) {
@@ -299,10 +295,17 @@ export default function Timeline({ range, value, onChange, events, renderValue }
       }
     }
     cancelPointerInteraction();
+    if (shouldReleasePointer) {
+      try {
+        evt.currentTarget.releasePointerCapture(evt.pointerId);
+      } catch {
+        /* Pointer capture can already be gone after browser-level cancellation. */
+      }
+    }
   }, [cancelPointerInteraction, handleTargetActivate, onChange, resolveTargetFromPointer]);
 
   const valueNode = renderValue?.(safeValue);
-  const showFallback = !activeViewport || viewRange.end <= viewRange.start;
+  const showFallback = !baseViewport || !activeViewport || viewRange.end <= viewRange.start;
 
   if (showFallback) {
     return (

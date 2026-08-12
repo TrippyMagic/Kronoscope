@@ -53,6 +53,7 @@ describe("timeline3D runtime policy", () => {
     expect(isTimeline3DRangeRenderable({ start: 0, end: 1 })).toBe(true);
     expect(isTimeline3DRangeRenderable({ start: 5, end: 5 })).toBe(false);
     expect(isTimeline3DRangeRenderable({ start: 10, end: 5 })).toBe(false);
+    expect(isTimeline3DRangeRenderable({ start: 0, end: Number.POSITIVE_INFINITY })).toBe(false);
   });
 });
 

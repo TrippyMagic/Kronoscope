@@ -95,6 +95,36 @@ describe("buildTimelineScene", () => {
     expect(globalLane?.interactiveTargets[0]?.kind).toBe("group");
     expect(globalLane?.interactiveTargets[0]?.detailItems).toHaveLength(2);
   });
+
+  it("drops invalid values and duplicate event identities before building targets", () => {
+    const range: Range = { start: 0, end: 100 };
+    const scene = buildTimelineScene({
+      events: [
+        makeEvent("stable", 25, "personal"),
+        makeEvent("stable", 50, "global"),
+        makeEvent("invalid", Number.NaN, "global"),
+      ],
+      range,
+      axisWidth: 800,
+      focusValue: 50,
+    });
+
+    expect(scene.lanes.flatMap(lane => lane.interactiveTargets)).toHaveLength(1);
+    expect(scene.lanes[0]?.interactiveTargets[0]?.selectionKey).toBe("stable");
+  });
+
+  it("returns a safe empty scene for an invalid range", () => {
+    const scene = buildTimelineScene({
+      events: [makeEvent("event", 10, "personal")],
+      range: { start: 10, end: 10 },
+      axisWidth: 800,
+      focusValue: Number.NaN,
+    });
+
+    expect(scene.focusRatio).toBe(0);
+    expect(scene.ticks).toEqual([]);
+    expect(scene.lanes.every(lane => lane.items.length === 0)).toBe(true);
+  });
 });
 
 

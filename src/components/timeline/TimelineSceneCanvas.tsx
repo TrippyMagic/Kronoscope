@@ -15,6 +15,8 @@ type Props = {
 };
 
 const SINGLE_MARKER_RADIUS = 6;
+const MAX_CANVAS_DPR = 2;
+const MAX_CANVAS_EDGE_PX = 8_192;
 
 const hexToRgba = (hex: string, alpha: number): string => {
   const normalized = hex.replace("#", "");
@@ -75,14 +77,18 @@ export function TimelineSceneCanvas({
     const context = canvas.getContext("2d");
     if (!context) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = Math.max(1, Math.round(width * dpr));
-    canvas.height = Math.max(1, Math.round(height * dpr));
+    const requestedDpr = Number.isFinite(window.devicePixelRatio)
+      ? Math.min(Math.max(window.devicePixelRatio, 1), MAX_CANVAS_DPR)
+      : 1;
+    const bufferWidth = Math.max(1, Math.min(MAX_CANVAS_EDGE_PX, Math.round(width * requestedDpr)));
+    const bufferHeight = Math.max(1, Math.min(MAX_CANVAS_EDGE_PX, Math.round(height * requestedDpr)));
+    canvas.width = bufferWidth;
+    canvas.height = bufferHeight;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
     context.setTransform(1, 0, 0, 1, 0, 0);
-    context.scale(dpr, dpr);
+    context.scale(bufferWidth / width, bufferHeight / height);
     context.clearRect(0, 0, width, height);
 
     const laneTops = [...new Set(targets.map(target => target.topPercent))].sort((a, b) => a - b);
@@ -104,6 +110,7 @@ export function TimelineSceneCanvas({
 
     for (const target of targets) {
       const geometry = getTimelineTargetGeometry(target, width, height);
+      if (!Number.isFinite(geometry.centerX) || !Number.isFinite(geometry.centerY)) continue;
       const x = geometry.centerX;
       const y = geometry.centerY;
       const laneY = (height * target.topPercent) / 100;

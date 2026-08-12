@@ -54,6 +54,14 @@ describe("Timeline3DWrapper", () => {
     expect(screen.getByRole("alert")).toBeTruthy();
     expect(screen.getByText(/webgl is not available in this browser/i)).toBeTruthy();
   });
+
+  it("does not mount the WebGL scene for an invalid range", () => {
+    render(<Timeline3DWrapper {...baseProps} range={{ start: 10, end: 10 }} />);
+
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByText(/date range cannot be rendered in 3d/i)).toBeTruthy();
+    expect(screen.queryByTestId("timeline3d-mock")).toBeNull();
+  });
 });
 
 

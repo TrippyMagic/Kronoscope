@@ -181,3 +181,31 @@ test("timeline empty state remains reachable and stable", async ({ page }) => {
   await expect(page.getByRole("status").filter({ hasText: /nothing to show right now/i })).toBeVisible();
   await expectStableLayout(page);
 });
+
+test("3D timeline keeps screen-space labels legible across camera zoom", async ({ page }) => {
+  await seedBirthDate(page);
+  await page.goto("/milestones");
+
+  const toggle = page.getByRole("button", { name: /open experimental 3d/i });
+  await expect(toggle).toBeVisible();
+  test.skip(await toggle.isDisabled(), "WebGL is unavailable in this browser runtime");
+
+  await toggle.click();
+  const canvas = page.locator(".timeline-3d canvas");
+  const laneLabel = page.locator(".timeline-3d__lane-label").first();
+  await expect(canvas).toBeVisible({ timeout: 20_000 });
+  await expect(laneLabel).toBeVisible({ timeout: 20_000 });
+  await canvas.scrollIntoViewIfNeeded();
+
+  const before = await laneLabel.boundingBox();
+  expect(before).not.toBeNull();
+  expect(await canvas.evaluate(node => getComputedStyle(node).imageRendering)).toBe("auto");
+
+  await canvas.hover();
+  await page.mouse.wheel(0, -800);
+  await page.waitForTimeout(350);
+
+  const after = await laneLabel.boundingBox();
+  expect(after).not.toBeNull();
+  expect(Math.abs((after?.height ?? 0) - (before?.height ?? 0))).toBeLessThanOrEqual(1);
+});

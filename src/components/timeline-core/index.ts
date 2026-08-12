@@ -11,8 +11,10 @@ export {
   buildTimeline3DScene,
   TIMELINE_3D_AXIS_MAX_X,
   TIMELINE_3D_AXIS_MIN_X,
+  TIMELINE_3D_COLLISION_GAP_X,
   TIMELINE_3D_LANE_OFFSET_Y,
   TIMELINE_3D_LANE_Y,
+  TIMELINE_3D_STACK_OFFSET_Y,
   toTimeline3DX,
   type BuildTimeline3DSceneOptions,
   type Timeline3DScene,
@@ -21,6 +23,7 @@ export {
   type Timeline3DSceneTick,
 } from "./buildTimeline3DScene";
 export { buildRenderItems } from "./buildRenderItems";
+export { normalizeTimelineEvents } from "./normalizeTimelineEvents";
 export {
   buildTimelineInteractiveTargets,
   buildTimelineSingleEventDescriptor,

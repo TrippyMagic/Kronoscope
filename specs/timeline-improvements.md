@@ -8,8 +8,8 @@ Future Timeline work should preserve the current `TimelineEvent` contract unless
 - keyboard-first 3D marker semantics
 - group selection in 3D
 - more explicit input state separation for pointer, touch, wheel, and keyboard logic
-- dense dataset profiling and culling budgets
-- better test fixtures for invalid dates and extreme ranges
+- dense dataset profiling and measured culling budgets beyond current visibility/collision safeguards
+- broader test fixtures for extreme date ranges and very large datasets
 - richer empty-state diagnostics for filtered global lanes
 
 ## Constraints

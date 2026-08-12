@@ -13,6 +13,7 @@ import type {
   RenderGroup,
 } from "../timeline/types";
 import { MAX_GROUPING_GAP_PX, MIN_GROUPING_GAP_PX } from "../timeline/types";
+import { normalizeTimelineEvents } from "./normalizeTimelineEvents";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1_000;
 const EDGE_GROUP_INSET_RATIO = 0.03;
@@ -103,12 +104,18 @@ export const buildRenderItems = (
   axisWidth: number,
   mode: ScaleMode = "linear",
 ): RenderItem[] => {
-  if (!events.length) return [];
+  if (range.end <= range.start || !Number.isFinite(range.start) || !Number.isFinite(range.end)) {
+    return [];
+  }
 
-  const positioned: PositionedEvent[] = events.map(event => ({
-    event,
-    ratio: valueToRatio(event.value, range, mode),
-  }));
+  const positioned: PositionedEvent[] = normalizeTimelineEvents(events)
+    .map(event => ({
+      event,
+      ratio: valueToRatio(event.value, range, mode),
+    }))
+    .sort((a, b) => a.event.value - b.event.value);
+
+  if (!positioned.length) return [];
 
   const startOffscreen = positioned.filter(item => item.event.value < range.start);
   const visible = positioned.filter(item => isEventVisibleInRange(item.event.value, range));
@@ -120,7 +127,9 @@ export const buildRenderItems = (
     items.push(toEdgeGroup(startOffscreen, range, "start"));
   }
 
-  if (axisWidth <= 0) {
+  const safeAxisWidth = Number.isFinite(axisWidth) && axisWidth > 0 ? axisWidth : 0;
+
+  if (safeAxisWidth === 0) {
     items.push(...visible.map(toSingle));
     if (endOffscreen.length > 0) {
       items.push(toEdgeGroup(endOffscreen, range, "end"));
@@ -129,7 +138,7 @@ export const buildRenderItems = (
   }
 
   const visibleCount = visible.length;
-  const groupingGapPx = getGroupingGapPx(visibleCount, axisWidth, range);
+  const groupingGapPx = getGroupingGapPx(visibleCount, safeAxisWidth, range);
 
   let buffer: PositionedEvent[] = [];
 
@@ -161,7 +170,7 @@ export const buildRenderItems = (
     }
 
     const prev = buffer[buffer.length - 1];
-    const distancePx = Math.abs(item.ratio - prev.ratio) * axisWidth;
+    const distancePx = Math.abs(item.ratio - prev.ratio) * safeAxisWidth;
     if (distancePx < groupingGapPx) {
       buffer.push(item);
     } else {
